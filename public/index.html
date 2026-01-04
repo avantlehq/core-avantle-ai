@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avantle Core API</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1e40af; margin-bottom: 10px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; }
+        .endpoint { 
+            background: #f1f5f9; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 15px 0;
+            font-family: monospace;
+        }
+        .status { color: #16a34a; font-weight: bold; }
+        a { color: #1e40af; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Avantle Core API</h1>
+        <p class="subtitle">Control plane for multi-tenant privacy platform</p>
+        
+        <p class="status">✅ API is running on Vercel!</p>
+        
+        <h3>🔗 Available Endpoints:</h3>
+        <div class="endpoint">GET /api/ - API root endpoint</div>
+        <div class="endpoint">GET /api/docs - Interactive API documentation (when database is connected)</div>
+        
+        <h3>📚 Documentation:</h3>
+        <ul>
+            <li><a href="https://github.com/avantlehq/core-avantle-ai" target="_blank">GitHub Repository</a></li>
+            <li><a href="/api/" target="_blank">API Status</a></li>
+        </ul>
+        
+        <h3>🏗️ Architecture:</h3>
+        <ul>
+            <li><strong>Framework:</strong> Fastify + TypeScript</li>
+            <li><strong>Database:</strong> PostgreSQL with Prisma ORM</li>
+            <li><strong>Authentication:</strong> JWT with RBAC</li>
+            <li><strong>Deployment:</strong> Vercel Serverless</li>
+        </ul>
+
+        <p><small>Version 1.0.0 | <span id="timestamp"></span></small></p>
+    </div>
+
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toISOString();
+    </script>
+</body>
+</html>

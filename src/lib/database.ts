@@ -1,5 +1,22 @@
-import { PrismaClient } from './prisma/index.js'
 import { logger } from './logger.js'
+import { mockPrismaClient, MockPrismaClient } from './prisma-mock.js'
+
+// Dynamic import for Prisma to handle serverless deployment
+let PrismaClient: any = null
+let prisma: any = null
+
+async function loadPrisma() {
+  if (!PrismaClient) {
+    try {
+      const prismaModule = await import('./prisma/index.js')
+      PrismaClient = prismaModule.PrismaClient
+    } catch (error) {
+      logger.warn('Prisma client not available, using mock client')
+      return mockPrismaClient
+    }
+  }
+  return PrismaClient
+}
 
 let prisma: PrismaClient | null = null
 

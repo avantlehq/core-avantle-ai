@@ -5,8 +5,7 @@
   "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "vercel-build": "prisma generate && npm run build",
+    "build": "echo 'No build needed for Vercel deployment'",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
