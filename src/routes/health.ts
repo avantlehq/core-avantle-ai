@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { checkDatabaseHealth } from '../lib/database.js'
 import { appConfig } from '../lib/config.js'
 import { HealthCheckResponse } from '../types/api.js'
+import { getVersionString } from '../lib/version.js'
 
 export const healthRoutes: FastifyPluginAsync = async (fastify) => {
   // Basic health check
@@ -24,7 +25,7 @@ export const healthRoutes: FastifyPluginAsync = async (fastify) => {
     return {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: appConfig.server.api_version,
+      version: getVersionString(),
     }
   })
 
@@ -75,7 +76,7 @@ export const healthRoutes: FastifyPluginAsync = async (fastify) => {
     const response: HealthCheckResponse = {
       status: overallStatus,
       timestamp,
-      version: appConfig.server.api_version,
+      version: getVersionString(),
       services: {
         database: dbHealth,
       },

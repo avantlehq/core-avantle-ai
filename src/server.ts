@@ -9,6 +9,7 @@ import swaggerUI from '@fastify/swagger-ui'
 import { appConfig, validateConfig } from './lib/config.js'
 import { logger } from './lib/logger.js'
 import { connectDatabase, disconnectDatabase } from './lib/database.js'
+import { getVersionString } from './lib/version.js'
 
 // Import middleware
 import { authMiddleware } from './middleware/auth.js'
@@ -18,6 +19,7 @@ import { errorHandlerMiddleware } from './middleware/error-handler.js'
 
 // Import routes
 import { healthRoutes } from './routes/health.js'
+import { versionRoutes } from './routes/version.js'
 import { authRoutes } from './routes/auth.js'
 import { partnerRoutes } from './routes/partners.js'
 import { tenantRoutes } from './routes/tenants.js'
@@ -132,6 +134,7 @@ async function buildServer() {
 
   // Register routes
   await fastify.register(healthRoutes, { prefix: '/health' })
+  await fastify.register(versionRoutes, { prefix: '/version' })
   await fastify.register(authRoutes, { prefix: '/auth' })
   
   // Protected routes with authentication
@@ -169,7 +172,7 @@ async function buildServer() {
   }, async (request, reply) => {
     return {
       service: 'Avantle Core API',
-      version: appConfig.server.api_version,
+      version: getVersionString(),
       timestamp: new Date().toISOString(),
       docs: '/docs',
     }
