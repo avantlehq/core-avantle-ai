@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "core-avantle-ai",
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["fra1"]
+}
