@@ -1,6 +1,6 @@
 {
   "name": "core-avantle-ai",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Avantle Core API - Control plane for multi-tenant privacy platform",
   "main": "dist/server.js",
   "type": "module",
