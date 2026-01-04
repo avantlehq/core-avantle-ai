@@ -1,15 +1,11 @@
 import { VercelRequest, VercelResponse } from '@vercel/node'
 import { build } from '../src/app.js'
-import { connectDatabase } from '../src/lib/database.js'
 
 let app: any = null
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!app) {
     try {
-      // Connect to database
-      await connectDatabase()
-      
       // Build Fastify app
       app = build({ logger: false })
       await app.ready()
