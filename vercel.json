@@ -1,19 +1,7 @@
 {
   "regions": ["fra1"],
-  "builds": [
-    {
-      "src": "src/server.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/src/server.ts"
-    }
-  ],
   "functions": {
-    "src/server.ts": {
+    "api/index.ts": {
       "maxDuration": 30
     }
   }
