@@ -39,14 +39,21 @@ enum Role {
 }
 ```
 
-## 🚀 Quick Start
+## 🚀 Production Deployment
 
-### Prerequisites
+### Live API
+- **Production URL**: https://core-avantle-ezuyyhjei-ramix24s-projects.vercel.app
+- **Status**: ✅ Deployed on Vercel Serverless
+- **Documentation**: Available at root URL with API reference
+
+### Quick Start
+
+#### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 14+ (for full functionality)
 - npm/pnpm
 
-### Installation
+#### Installation
 ```bash
 # Clone repository
 git clone https://github.com/avantlehq/core-avantle-ai.git
@@ -69,13 +76,24 @@ npm run db:push
 npm run db:seed
 ```
 
-### Development
+#### Development
 ```bash
 # Start development server
 npm run dev
 
-# API available at http://localhost:3000
-# Swagger docs at http://localhost:3000/docs
+# API available at http://localhost:3001
+# Swagger docs at http://localhost:3001/docs
+```
+
+#### Production Deployment
+The API is deployed on Vercel with serverless architecture. For full functionality, configure environment variables in Vercel dashboard:
+
+```bash
+# Deploy to Vercel
+vercel deploy --prod
+
+# Configure environment variables
+# DATABASE_URL, JWT_SECRET, ADMIN_EMAIL, etc.
 ```
 
 ### Testing
