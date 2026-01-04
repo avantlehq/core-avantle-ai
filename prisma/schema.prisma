@@ -1,0 +1,464 @@
+// Avantle Core API Database Schema
+// Product-agnostic control plane for multi-tenant platform
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/lib/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// IDENTITY & TENANCY
+// ============================================================================
+
+model Partner {
+  id            String   @id @default(cuid())
+  name          String
+  status        PartnerStatus @default(ACTIVE)
+  billing_email String
+  created_by_user_id String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  last_active_at DateTime?
+
+  // Relations
+  tenants       Tenant[]
+  created_by    User?    @relation("PartnerCreatedBy", fields: [created_by_user_id], references: [id])
+
+  @@map("partners")
+}
+
+model Tenant {
+  id          String      @id @default(cuid())
+  partner_id  String
+  name        String
+  tenant_type TenantType
+  status      TenantStatus @default(ACTIVE)
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @updatedAt
+
+  // Relations
+  partner         Partner           @relation(fields: [partner_id], references: [id], onDelete: Cascade)
+  memberships     Membership[]
+  api_clients     APIClient[]
+  domains         Domain[]
+  branding        Branding?
+  product_access  ProductAccess[]
+  tenant_plans    TenantPlan[]
+  usage_counters  UsageCounter[]
+  audit_logs      AuditLog[]
+  security_events SecurityEvent[]
+  webhooks        Webhook[]
+
+  @@index([partner_id])
+  @@index([status])
+  @@index([created_at])
+  @@map("tenants")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  email      String     @unique
+  name       String?
+  status     UserStatus @default(ACTIVE)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+
+  // Relations
+  memberships         Membership[]
+  created_partners    Partner[]    @relation("PartnerCreatedBy")
+  audit_logs          AuditLog[]
+  security_events     SecurityEvent[]
+  access_decisions    AccessDecisionAudit[]
+
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+model Membership {
+  id        String @id @default(cuid())
+  user_id   String
+  tenant_id String
+  role      Role
+  created_at DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, tenant_id])
+  @@index([tenant_id])
+  @@index([role])
+  @@map("memberships")
+}
+
+// ============================================================================
+// MACHINE IDENTITIES
+// ============================================================================
+
+model APIClient {
+  id                 String    @id @default(cuid())
+  tenant_id          String
+  name               String
+  client_id          String    @unique
+  client_secret_hash String
+  status             APIClientStatus @default(ACTIVE)
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  // Relations
+  tenant Tenant             @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  scopes APIClientScope[]
+  access_decisions AccessDecisionAudit[]
+
+  @@index([tenant_id])
+  @@index([client_id])
+  @@map("api_clients")
+}
+
+model APIClientScope {
+  id            String      @id @default(cuid())
+  api_client_id String
+  product_key   String
+  environment   Environment
+  scopes        String[]
+  created_at    DateTime    @default(now())
+
+  // Relations
+  api_client APIClient @relation(fields: [api_client_id], references: [id], onDelete: Cascade)
+
+  @@index([api_client_id])
+  @@index([product_key, environment])
+  @@map("api_client_scopes")
+}
+
+// ============================================================================
+// DOMAINS & BRANDING
+// ============================================================================
+
+model Domain {
+  id               String       @id @default(cuid())
+  tenant_id        String
+  hostname         String       @unique
+  status           DomainStatus @default(PENDING)
+  verified_at      DateTime?
+  last_verified_at DateTime?
+  verification_errors String[]
+  dns_records      Json?
+  redirect_rules   Json?
+  ssl_config       Json?
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id])
+  @@index([hostname])
+  @@index([status])
+  @@map("domains")
+}
+
+model Branding {
+  id               String   @id @default(cuid())
+  tenant_id        String   @unique
+  logo_url         String?
+  favicon_url      String?
+  primary_color    String?
+  theme_config     Json?
+  custom_css_url   String?
+  legal_links      Json?
+  footer_text      String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("branding")
+}
+
+// ============================================================================
+// PRODUCT ACCESS & ENVIRONMENTS
+// ============================================================================
+
+model Environment {
+  id          String @id @default(cuid())
+  key         String @unique
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+
+  @@map("environments")
+}
+
+model ProductAccess {
+  id          String      @id @default(cuid())
+  tenant_id   String
+  product_key String
+  environment Environment
+  status      ProductAccessStatus @default(ACTIVE)
+  created_at  DateTime    @default(now())
+  updated_at  DateTime    @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, product_key, environment])
+  @@index([tenant_id])
+  @@index([product_key])
+  @@map("product_access")
+}
+
+// ============================================================================
+// PLANS & QUOTAS
+// ============================================================================
+
+model Plan {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  name       String
+  limits     Json     // JSON with quota limits
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Relations
+  tenant_plans TenantPlan[]
+
+  @@map("plans")
+}
+
+model TenantPlan {
+  id             String   @id @default(cuid())
+  tenant_id      String
+  plan_id        String
+  effective_from DateTime @default(now())
+  effective_to   DateTime?
+  created_at     DateTime @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [plan_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([effective_from])
+  @@map("tenant_plans")
+}
+
+model UsageCounter {
+  id           String      @id @default(cuid())
+  tenant_id    String
+  product_key  String
+  environment  Environment
+  metric_key   String
+  period_start DateTime
+  period_end   DateTime?
+  value        BigInt      @default(0)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, product_key, environment, metric_key, period_start])
+  @@index([tenant_id, period_start])
+  @@index([product_key, environment])
+  @@map("usage_counters")
+}
+
+// ============================================================================
+// WEBHOOKS
+// ============================================================================
+
+model Webhook {
+  id           String        @id @default(cuid())
+  tenant_id    String
+  event_types  String[]
+  endpoint_url String
+  secret_hash  String
+  status       WebhookStatus @default(ACTIVE)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id])
+  @@map("webhooks")
+}
+
+// ============================================================================
+// AUDIT & SECURITY
+// ============================================================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  tenant_id     String?
+  actor_id      String
+  actor_type    ActorType
+  entity_type   String
+  entity_id     String
+  action        String
+  old_values    Json?
+  new_values    Json?
+  request_id    String?
+  ip_address    String?
+  user_agent    String?
+  timestamp     DateTime @default(now())
+
+  // Relations
+  tenant Tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [actor_id], references: [id])
+
+  @@index([tenant_id, timestamp])
+  @@index([entity_type, entity_id])
+  @@index([actor_id])
+  @@map("audit_logs")
+}
+
+model SecurityEvent {
+  id          String            @id @default(cuid())
+  tenant_id   String?
+  user_id     String?
+  event_type  SecurityEventType
+  severity    SecuritySeverity
+  ip_address  String?
+  user_agent  String?
+  details     Json?
+  timestamp   DateTime          @default(now())
+
+  // Relations
+  tenant Tenant? @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id, timestamp])
+  @@index([event_type])
+  @@index([severity])
+  @@map("security_events")
+}
+
+model AccessDecisionAudit {
+  id             String         @id @default(cuid())
+  subject_type   SubjectType
+  subject_id     String
+  tenant_id      String?
+  product_key    String?
+  environment    Environment?
+  action         String
+  decision       AccessDecision
+  policy_version String?
+  request_id     String
+  timestamp      DateTime       @default(now())
+
+  // Relations
+  user       User?     @relation(fields: [subject_id], references: [id])
+  api_client APIClient? @relation(fields: [subject_id], references: [id])
+
+  @@index([tenant_id, timestamp])
+  @@index([subject_type, subject_id])
+  @@index([decision])
+  @@map("access_decision_audit")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum PartnerStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum TenantType {
+  UI      // Frontend applications
+  API     // API-only integrations  
+  HYBRID  // Both UI and API
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum Role {
+  PLATFORM_ADMIN  // Avantle administrators
+  PARTNER_ADMIN    // Partner organization admins
+  TENANT_ADMIN     // Tenant administrators
+  TENANT_USER      // Regular tenant users
+}
+
+enum APIClientStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  SUSPENDED
+}
+
+enum ProductAccessStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum Environment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum WebhookStatus {
+  ACTIVE
+  SUSPENDED
+  FAILED
+}
+
+enum ActorType {
+  USER
+  API_CLIENT
+  SYSTEM
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  PASSWORD_CHANGED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  PERMISSION_DENIED
+  SUSPICIOUS_ACTIVITY
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SubjectType {
+  USER
+  API_CLIENT
+}
+
+enum AccessDecision {
+  ALLOW
+  DENY
+}
